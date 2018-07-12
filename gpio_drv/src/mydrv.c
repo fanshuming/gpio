@@ -300,7 +300,7 @@ module_exit(mydrv_exit);
 
 //some infomation
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("from Jafy");
+MODULE_AUTHOR("from fanshuming");
 MODULE_DESCRIPTION("mydrv drive");
 
 
