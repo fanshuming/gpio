@@ -5,20 +5,20 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
-PKG_NAME:=mydrv
+PKG_NAME:=gpio_drv
 PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
-define KernelPackage/mydrv
+define KernelPackage/gpio_drv
   SUBMENU:=Other modules
-  TITLE:=mydrv
-  FILES:=$(PKG_BUILD_DIR)/mydrv.ko
+  TITLE:=gpio_drv
+  FILES:=$(PKG_BUILD_DIR)/gpio_drv.ko
   KCONFIG:=
 endef
 
-define KernelPackage/mydrv/description
-  This is a mydrv drivers
+define KernelPackage/gpio_drv/description
+  This is a gpio_drv drivers
 endef
 
 MAKE_OPTS:= \
@@ -36,4 +36,4 @@ define Build/Compile
 	$(MAKE_OPTS) modules
 endef
 
-$(eval $(call KernelPackage,mydrv))
+$(eval $(call KernelPackage,gpio_drv))

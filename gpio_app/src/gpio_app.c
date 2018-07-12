@@ -15,12 +15,9 @@
 void print_usage(char *file)
 {
     printf("Usage:\n");
-    printf("%s <dev> <on|off>\n",file);
     printf("eg. \n");
-    printf("%s led1 on\n", file);
-    printf("%s led1 off\n", file);
-    printf("%s led2 on\n", file);
-    printf("%s led2 off\n", file);
+    printf("%s led on\n", file);
+    printf("%s led off\n", file);
 }
 
 int main(int argc , char** argv)
@@ -33,14 +30,14 @@ int main(int argc , char** argv)
 		return 0;
 	}
 	
-	fd = open("/dev/mydrv" , O_RDWR|O_NONBLOCK);
+	fd = open("/dev/gpio_drv" , O_RDWR|O_NONBLOCK);
 	if(fd < 0)
 	{
-		printf("can't open /dev/mydrv\n");
+		printf("can't open /dev/gpio_drv\n");
 		return -1;
 	}
 
-	if(!strcmp("led1",argv[1]))
+	if(!strcmp("led",argv[1]))
 	{
 		if(!strcmp("on", argv[2]))
 		{

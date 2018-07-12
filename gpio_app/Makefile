@@ -6,14 +6,14 @@
 
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=mydrv_app
+PKG_NAME:=gpio_app
 PKG_RELEASE:=1
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/mydrv_app
+define Package/gpio_app
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=Frame buffer device testing tool
@@ -37,10 +37,10 @@ define Build/Compile
 	LDFLAGS="$(TARGET_LDFLAGS)"
 endef
 
-define Package/mydrv_app/install
+define Package/gpio_app/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/mydrv_app $(1)/usr/sbin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/gpio_app $(1)/usr/sbin/
 endef
 
-$(eval $(call BuildPackage,mydrv_app))
+$(eval $(call BuildPackage,gpio_app))
 

@@ -1,2 +1,2 @@
-obj-m += mydrv.o
+obj-m += gpio_drv.o
 

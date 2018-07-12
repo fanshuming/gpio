@@ -1,5 +1,5 @@
-all: mydrv_app
-OBJS = mydrv_app.o
+all: gpio_app
+OBJS = gpio_app.o
 
 CC = gcc
 CCFLAGS = -Wall -c -o

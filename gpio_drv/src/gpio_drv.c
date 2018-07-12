@@ -1,13 +1,3 @@
-/***************************** 
-*
-*   驱动程序模板
-*   版本：V1
-*   使用方法(末行模式下)：
-*   :%s/mydrv/"你的驱动名称"/g
-*
-*******************************/
-
-
 #include <linux/mm.h>
 #include <linux/miscdevice.h>
 #include <linux/slab.h>
@@ -38,10 +28,11 @@
 #define MYLEDS_LED1_OFF 1
 
 
-volatile unsigned long *GPIOMODE;
-volatile unsigned long *GPIO11_DIR;
-volatile unsigned long *GPIO11_SETDATA;
-volatile unsigned long *GPIO11_RESETDATA;
+volatile unsigned long *GPIO40_MODE;
+volatile unsigned long *GPIO40_DATA;
+volatile unsigned long *GPIO40_DIR;
+volatile unsigned long *GPIO40_SETDATA;
+volatile unsigned long *GPIO40_RESETDATA;
 
 
 /****************  基本定义 **********************/
@@ -53,9 +44,9 @@ volatile unsigned long *GPIO11_RESETDATA;
 
 
 //加密函数参数内容： _IOW(IOW_CHAR , IOW_NUMn , IOW_TYPE)
-//加密函数用于mydrv_ioctl函数中
+//加密函数用于gpio_drv_ioctl函数中
 //使用举例：ioctl(fd , _IOW('L',0x80,long) , 0x1);
-//#define NUMn mydrv , if you need!
+//#define NUMn gpio_drv , if you need!
 #define IOW_CHAR 'L'
 #define IOW_TYPE  long
 #define IOW_NUM1  0x80
@@ -66,70 +57,81 @@ volatile unsigned long *GPIO11_RESETDATA;
 //device number;
 	dev_t dev_num;
 //struct dev
-	struct cdev mydrv_cdev;
-//auto "mknode /dev/mydrv c dev_num minor_num"
-struct class *mydrv_class = NULL;
-struct device *mydrv_device = NULL;
+	struct cdev gpio_drv_cdev;
+//auto "mknode /dev/gpio_drv c dev_num minor_num"
+struct class *gpio_drv_class = NULL;
+struct device *gpio_drv_device = NULL;
 
 
 /**************** 结构体 file_operations 成员函数 *****************/
 //open
-static int mydrv_open(struct inode *inode, struct file *file)
+static int gpio_drv_open(struct inode *inode, struct file *file)
 {
-	printk("mydrv drive open...\n");
+	printk("gpio_drv drive open...\n");
 
-	*GPIO11_RESETDATA |=(1u<<11);
+	*GPIO40_RESETDATA |=(1u<<8);
 
 	return 0;
 }
 
 //close
-static int mydrv_close(struct inode *inode , struct file *file)
+static int gpio_drv_close(struct inode *inode , struct file *file)
 {
-	printk("mydrv drive close...\n");
+	printk("gpio_drv drive close...\n");
 
 
 	return 0;
 }
 
 //read
-static ssize_t mydrv_read(struct file *file, char __user *buffer,
+static ssize_t gpio_drv_read(struct file *file, char __user *buffer,
 			size_t len, loff_t *pos)
 {
 	int ret_v = 0;
-	printk("mydrv drive read...\n");
+	ret_v = *GPIO40_SETDATA & (1u<<8);
+	printk("gpio_drv drive read:%d\n",ret_v);
+	
+	copy_to_user(buffer, &ret_v, 4);
 
-
-	return ret_v;
+	return 4;
 }
 
 //write
-static ssize_t mydrv_write( struct file *file , const char __user *buffer,
+static ssize_t gpio_drv_write( struct file *file , const char __user *buffer,
 			   size_t len , loff_t *offset )
 {
 	int ret_v = 0;
-	printk("mydrv drive write...\n");
 
+	copy_from_user(&ret_v, buffer, 4);
 
-	return ret_v;
+	printk("gpio_drv drive write:%d\n",ret_v);
+
+	if(ret_v == 0)
+	{
+		*GPIO40_DATA &= ~(1<<8);
+	}else{
+		*GPIO40_DATA |=  (1<<8);
+	}
+
+	return 4;
 }
 
 //unlocked_ioctl
-static int mydrv_ioctl (struct file *filp , unsigned int cmd , unsigned long arg)
+static int gpio_drv_ioctl (struct file *filp , unsigned int cmd , unsigned long arg)
 {
 	int ret_v = 0;
-	printk("mydrv drive ioctl...\n");
+	printk("gpio_drv drive ioctl...\n");
 
 	switch(cmd)
 	{
 		//常规：
 		//cmd值自行进行修改
 		 case MYLEDS_LED1_ON:
-		      *GPIO11_RESETDATA |= (1u<<11);
+		      *GPIO40_RESETDATA |= (1u<<8);
 		 break;
 
 		 case MYLEDS_LED1_OFF:
-             *GPIO11_SETDATA |= (1u<<11);
+             *GPIO40_SETDATA |= (1u<<8);
 		 break;
 		//带密码保护：
 		//请在"基本定义"进行必要的定义
@@ -153,13 +155,13 @@ static int mydrv_ioctl (struct file *filp , unsigned int cmd , unsigned long arg
 
 /***************** 结构体： file_operations ************************/
 //struct
-static const struct file_operations mydrv_fops = {
+static const struct file_operations gpio_drv_fops = {
 	.owner   = THIS_MODULE,
-	.open	 = mydrv_open,
-	.release = mydrv_close,	
-	.read	 = mydrv_read,
-	.write   = mydrv_write,
-	.unlocked_ioctl	= mydrv_ioctl,
+	.open	 = gpio_drv_open,
+	.release = gpio_drv_close,	
+	.read	 = gpio_drv_read,
+	.write   = gpio_drv_write,
+	.unlocked_ioctl	= gpio_drv_ioctl,
 };
 
 
@@ -169,37 +171,37 @@ unsigned char init_flag = 0;
 unsigned char add_code_flag = 0;
 
 //init
-static __init int mydrv_init(void)
+static __init int gpio_drv_init(void)
 {
 	int ret_v = 0;
-	printk("mydrv drive init...\n");
+	printk("gpio_drv drive init...\n");
 
 	//函数alloc_chrdev_region主要参数说明：
 	//参数2： 次设备号
 	//参数3： 创建多少个设备
-	if( ( ret_v = alloc_chrdev_region(&dev_num,0,1,"mydrv") ) < 0 )
+	if( ( ret_v = alloc_chrdev_region(&dev_num,0,1,"gpio_drv") ) < 0 )
 	{
 		goto dev_reg_error;
 	}
 	init_flag = 1; //标示设备创建成功；
 
-	printk("The drive info of mydrv:\nmajor: %d\nminor: %d\n",
+	printk("The drive info of gpio_drv:\nmajor: %d\nminor: %d\n",
 		MAJOR(dev_num),MINOR(dev_num));
 
-	cdev_init(&mydrv_cdev,&mydrv_fops);
-	if( (ret_v = cdev_add(&mydrv_cdev,dev_num,1)) != 0 )
+	cdev_init(&gpio_drv_cdev,&gpio_drv_fops);
+	if( (ret_v = cdev_add(&gpio_drv_cdev,dev_num,1)) != 0 )
 	{
 		goto cdev_add_error;
 	}
 
-	mydrv_class = class_create(THIS_MODULE,"mydrv");
-	if( IS_ERR(mydrv_class) )
+	gpio_drv_class = class_create(THIS_MODULE,"gpio_drv");
+	if( IS_ERR(gpio_drv_class) )
 	{
 		goto class_c_error;
 	}
 
-	mydrv_device = device_create(mydrv_class,NULL,dev_num,NULL,"mydrv");
-	if( IS_ERR(mydrv_device) )
+	gpio_drv_device = device_create(gpio_drv_class,NULL,dev_num,NULL,"gpio_drv");
+	if( IS_ERR(gpio_drv_device) )
 	{
 		goto device_c_error;
 	}
@@ -207,16 +209,18 @@ static __init int mydrv_init(void)
 
 	//------------   请在此添加您的初始化程序  --------------//
        
+        GPIO40_MODE = (volatile unsigned long *)ioremap(0x10000064, 4);
+        GPIO40_DATA = (volatile unsigned long *)ioremap(0x10000624, 4);
+        GPIO40_DIR =  (volatile unsigned long *)ioremap(0x10000604, 4);
 
-	//GPIOMODE=(volatile unsigned long *)ioremap(0x10000060,4);//gpio 复用时需要配置
-    GPIO11_DIR=(volatile unsigned long *)ioremap(0x10000600,4);
-	GPIO11_SETDATA=(volatile unsigned long *)ioremap(0x10000630,4);
-    GPIO11_RESETDATA=(volatile unsigned long *)ioremap(0x10000640,4);
+    	*GPIO40_MODE |= (1u<<8);
+    	*GPIO40_DIR  |=  (1u<<8);
+
+	GPIO40_SETDATA=(volatile unsigned long *)ioremap(0x10000634,4);
+    	GPIO40_RESETDATA=(volatile unsigned long *)ioremap(0x10000644,4);
  	
-	//*GPIOMODE |= (1u<<11);
-	*GPIO11_DIR |= (1u<<11);
 
-        //如果需要做错误处理，请：goto mydrv_error;	
+        //如果需要做错误处理，请：goto gpio_drv_error;	
 
 	 add_code_flag = 1;
 	//----------------------  END  ---------------------------// 
@@ -235,38 +239,34 @@ cdev_add_error:
 
 class_c_error:
 	printk("class_create failed\n");
-	cdev_del(&mydrv_cdev);
+	cdev_del(&gpio_drv_cdev);
  	unregister_chrdev_region(dev_num, 1);
 	init_flag = 0;
-	return PTR_ERR(mydrv_class);
+	return PTR_ERR(gpio_drv_class);
 
 device_c_error:
 	printk("device_create failed\n");
-	cdev_del(&mydrv_cdev);
+	cdev_del(&gpio_drv_cdev);
  	unregister_chrdev_region(dev_num, 1);
-	class_destroy(mydrv_class);
+	class_destroy(gpio_drv_class);
 	init_flag = 0;
-	return PTR_ERR(mydrv_device);
+	return PTR_ERR(gpio_drv_device);
 
 //------------------ 请在此添加您的错误处理内容 ----------------//
-mydrv_error:
-		
-
-
-
+gpio_drv_error:
 	add_code_flag = 0;
 	return -1;
 //--------------------          END         -------------------//
     
 init_success:
-	printk("mydrv init success!\n");
+	printk("gpio_drv init success!\n");
 	return 0;
 }
 
 //exit
-static __exit void mydrv_exit(void)
+static __exit void gpio_drv_exit(void)
 {
-	printk("mydrv drive exit...\n");	
+	printk("gpio_drv drive exit...\n");	
 
 	if(add_code_flag == 1)
  	{   
@@ -274,9 +274,9 @@ static __exit void mydrv_exit(void)
 	    printk("free your resources...\n");	               
 
 	 	 //iounmap(GPIOMODE);
-		 iounmap(GPIO11_DIR);
-		 iounmap(GPIO11_SETDATA);
-		 iounmap(GPIO11_RESETDATA);
+		 iounmap(GPIO40_DIR);
+		 iounmap(GPIO40_SETDATA);
+		 iounmap(GPIO40_RESETDATA);
 
 	    printk("free finish\n");		               
 	    //----------------------     END      -------------------//
@@ -285,23 +285,23 @@ static __exit void mydrv_exit(void)
 	if(init_flag == 1)
 	{
 		//释放初始化使用到的资源;
-		cdev_del(&mydrv_cdev);
+		cdev_del(&gpio_drv_cdev);
  		unregister_chrdev_region(dev_num, 1);
-		device_unregister(mydrv_device);
-		class_destroy(mydrv_class);
+		device_unregister(gpio_drv_device);
+		class_destroy(gpio_drv_class);
 	}
 }
 
 
 /**************** module operations**********************/
 //module loading
-module_init(mydrv_init);
-module_exit(mydrv_exit);
+module_init(gpio_drv_init);
+module_exit(gpio_drv_exit);
 
 //some infomation
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("from fanshuming");
-MODULE_DESCRIPTION("mydrv drive");
+MODULE_DESCRIPTION("gpio_drv drive");
 
 
 
