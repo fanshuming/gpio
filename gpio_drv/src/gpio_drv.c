@@ -24,8 +24,8 @@
 #include <asm/uaccess.h>
 #include <linux/ioctl.h>
 
-#define MYLEDS_LED1_ON  0
-#define MYLEDS_LED1_OFF 1
+#define LED1_ON  0
+#define LED1_OFF 1
 
 
 volatile unsigned long *GPIO40_MODE;
@@ -126,11 +126,11 @@ static int gpio_drv_ioctl (struct file *filp , unsigned int cmd , unsigned long 
 	{
 		//常规：
 		//cmd值自行进行修改
-		 case MYLEDS_LED1_ON:
+		 case LED1_ON:
 		      *GPIO40_RESETDATA |= (1u<<8);
 		 break;
 
-		 case MYLEDS_LED1_OFF:
+		 case LED1_OFF:
              *GPIO40_SETDATA |= (1u<<8);
 		 break;
 		//带密码保护：
